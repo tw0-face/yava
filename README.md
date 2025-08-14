@@ -258,12 +258,12 @@ kubectl apply -f manifests/infrastructure/kamajivirt.yaml
 
 - This should create: `clusters`, `kubevirtcluster`, `kamajicontrolplane`, `kubevirtmachinetemplate`, `kubeadmconfigtemplate`, `machinedeployment`
 
-![text](assets/staging-cluster.webm)
+[staging-cluster.webm](https://github.com/user-attachments/assets/2e5558a4-4083-4b0e-84f0-089a93f4f5a1)
 
 > As you can see the staging cluster was successfully created using our Crossplane Composite Resource (XR)
 
+[staging-cluster-2.webm](https://github.com/user-attachments/assets/8592f937-4d54-4f56-b6ba-3355eeae7ce6)
 
-![text](assets/staging-cluster-2.webm)
 
 > the crossplane composition automatically install flannel (CNI) on the provisioned cluster
 
@@ -445,7 +445,8 @@ chmod +x test/aws-net-test.sh
 ./test/aws-net-test.sh
 ```
 
-![text](assets/localstack-net.webm)
+[localstack-net.webm](https://github.com/user-attachments/assets/de162a8b-9a1c-48c9-8eac-36dfd2dd94d2)
+
 
 3. `EKS` setup
 
@@ -461,7 +462,8 @@ kubectl apply -f manifests/infrastructure/aws-eks.yaml
 > for testing I used a different composition than that in production, this version is stripped from the unsupported `localstack` endpoints, although these can be skipped, but the resource wouldn't be in `ready` state.
 > In production environment you can create another `XRD` endpoint for test composition, and refer to different `provider configs`
 
-![text](assets/localstack-eks.mp4)
+[localstack-eks.mp4](https://github.com/user-attachments/assets/2781b333-2bc9-4c6f-b870-90b7305eed05)
+
 
 #### ACK
 
@@ -509,7 +511,8 @@ kubectl gadget deploy
 kubectl gadget run trace_dns:latest -n ack-system,kube-system -F "k8s.podName~ack-ec2-controller-ec2-chart-.*|coredns-.*" --fields=src,dst,name,qtype,qr,rcode,addresses
 ```
 
-![text](assets/inspektor-gadget.mp4)
+[inspektor-gadget.mp4](https://github.com/user-attachments/assets/6f6d40fb-c37b-4000-840e-6c36d08e4291)
+
 
 `inspektor gadget` can also show us what is going in `localstack` under the hood when creating `postgres` and `redis instances`
 
@@ -522,7 +525,7 @@ kubectl gadget run ghcr.io/inspektor-gadget/gadget/trace_exec:latest -n localsta
 kubectl gadget run snapshot_process:latest -n localstack -c localstack  --fields=k8s.containerName,comm
 ```
 
-![text](assets/inspektor-gadget-2.mp4)
+[inspektor-gadget-2.mp4](https://github.com/user-attachments/assets/a68d9b30-d942-4ae0-a405-e8de7af25986
 
 #### Cleanup
 
@@ -613,7 +616,8 @@ chectl dashboard:open
 - The fist time a workspace is created it's gonna take a while to download the images used in `devfile`.
 - Now you can access the workspace and start developing
 
-![text](assets/devspace.webm)
+[devspace.webm](https://github.com/user-attachments/assets/8bf1a25b-667e-4e55-8058-7497b40a0e8f)
+
 
 # Deployment Workflow Setup 
 
@@ -628,7 +632,8 @@ The deployment workflow consists of:
 3. The `argo event` create an `argo workflow` from the `ci template` based on the updated microservices code
 4. `argo workflow` is responsible for building and publishing the image as well as scanning the image using `trivy`
 
-![text](assets/ci-wf.webm)
+[ci-wf.webm](https://github.com/user-attachments/assets/f7f709da-74ee-4588-9555-6c4e215c4540)
+
 
 5. Once the image is published to the docker repo, It's available in the relevant `kargo` warehouse
 6. On promoting the image to the cluster using the relative freight, `kargo` uses `kustomize` image set to create a git commit with the new image for each stage (given each stage represent a cluster)
@@ -677,7 +682,8 @@ kubectl apply -f manifests/configs/argocd/configs/argocd.yaml
 
 - Edit the github repo and image repo mentioned in `manifests/configs/kargo` directory
 
-![text](assets/kargo-staging.webm)
+[kargo-staging.webm](https://github.com/user-attachments/assets/bc7f4e76-226b-4620-8509-f88d29d06963)
+
 
 ![alt text](assets/argo-staging-ro1.png)
 ![alt text](assets/argo-staging-ro2.png)
@@ -686,7 +692,7 @@ kubectl apply -f manifests/configs/argocd/configs/argocd.yaml
 
 - repeat for aws prod
 
-![text](assets/aws_prod.mp4)
+[aws_prod.mp4](https://github.com/user-attachments/assets/79e29dde-fec2-428a-86aa-73a4c5c14bb4)
 
 > As you can see the `ACK` controller created the `postgres rds`, and the `redis elasticache`, also the `lbc` controller create d an `alb` for the created ingress and the application is fully functional
 
@@ -729,7 +735,7 @@ kubectl create secret generic k6-script \
 
 2. Create project and add cluster
 
-![text](assets/chaos-project.webm)
+[chaos-project.webm](https://github.com/user-attachments/assets/732681a2-a193-4976-80b1-8a87e25e8fa0)
 
 > apply the file to staging cluster
 
@@ -739,12 +745,13 @@ kubectl create secret generic k6-script \
 
 3. Probes are now required in litmus chaos, for simplicity we gonna use an up probe to test if our service is up before load testing it.
 
-![text](assets/chaos-probe.webm)
+[chaos-probe.webm](https://github.com/user-attachments/assets/2de2a5cc-c6fc-42a9-a17b-73b6cc90dc1c)
+
 
 4. Create `k6` experiment
 
-![text](assets/k6-exp.webm)
+[k6-exp.webm](https://github.com/user-attachments/assets/a2184f66-110d-4397-94ca-42b0cb5aadbe)
 
 5. Run the load test
 
-![text](assets/k6-exp.webm)
+[k6-exp.webm](https://github.com/user-attachments/assets/a79d25a1-c500-49ad-a949-231320fb566b)
