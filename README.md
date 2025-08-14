@@ -258,12 +258,11 @@ kubectl apply -f manifests/infrastructure/kamajivirt.yaml
 
 - This should create: `clusters`, `kubevirtcluster`, `kamajicontrolplane`, `kubevirtmachinetemplate`, `kubeadmconfigtemplate`, `machinedeployment`
 
-[staging-cluster.webm](https://github.com/user-attachments/assets/2e5558a4-4083-4b0e-84f0-089a93f4f5a1)
+[staging-cluster.mp4](https://github.com/user-attachments/assets/2e5558a4-4083-4b0e-84f0-089a93f4f5a1)
 
 > As you can see the staging cluster was successfully created using our Crossplane Composite Resource (XR)
 
-[staging-cluster-2.webm](https://github.com/user-attachments/assets/8592f937-4d54-4f56-b6ba-3355eeae7ce6)
-
+[staging-cluster-2.mp4](https://github.com/user-attachments/assets/c24acd27-f78c-4f9c-bce9-4644dd4c6efe)
 
 > the crossplane composition automatically install flannel (CNI) on the provisioned cluster
 
@@ -445,7 +444,7 @@ chmod +x test/aws-net-test.sh
 ./test/aws-net-test.sh
 ```
 
-[localstack-net.webm](https://github.com/user-attachments/assets/de162a8b-9a1c-48c9-8eac-36dfd2dd94d2)
+[localstack-net.mp4](https://github.com/user-attachments/assets/de162a8b-9a1c-48c9-8eac-36dfd2dd94d2)
 
 
 3. `EKS` setup
@@ -616,7 +615,7 @@ chectl dashboard:open
 - The fist time a workspace is created it's gonna take a while to download the images used in `devfile`.
 - Now you can access the workspace and start developing
 
-[devspace.webm](https://github.com/user-attachments/assets/8bf1a25b-667e-4e55-8058-7497b40a0e8f)
+[devspace.mp4](https://github.com/user-attachments/assets/8bf1a25b-667e-4e55-8058-7497b40a0e8f)
 
 
 # Deployment Workflow Setup 
@@ -632,7 +631,7 @@ The deployment workflow consists of:
 3. The `argo event` create an `argo workflow` from the `ci template` based on the updated microservices code
 4. `argo workflow` is responsible for building and publishing the image as well as scanning the image using `trivy`
 
-[ci-wf.webm](https://github.com/user-attachments/assets/f7f709da-74ee-4588-9555-6c4e215c4540)
+[ci-wf.mp4](https://github.com/user-attachments/assets/f7f709da-74ee-4588-9555-6c4e215c4540)
 
 
 5. Once the image is published to the docker repo, It's available in the relevant `kargo` warehouse
@@ -682,7 +681,7 @@ kubectl apply -f manifests/configs/argocd/configs/argocd.yaml
 
 - Edit the github repo and image repo mentioned in `manifests/configs/kargo` directory
 
-[kargo-staging.webm](https://github.com/user-attachments/assets/bc7f4e76-226b-4620-8509-f88d29d06963)
+[kargo-staging.mp4](https://github.com/user-attachments/assets/bc7f4e76-226b-4620-8509-f88d29d06963)
 
 
 ![alt text](assets/argo-staging-ro1.png)
@@ -735,7 +734,7 @@ kubectl create secret generic k6-script \
 
 2. Create project and add cluster
 
-[chaos-project.webm](https://github.com/user-attachments/assets/732681a2-a193-4976-80b1-8a87e25e8fa0)
+[chaos-project.mp4](https://github.com/user-attachments/assets/491334de-633f-4e8d-a612-541132cdb64f)
 
 > apply the file to staging cluster
 
@@ -745,13 +744,13 @@ kubectl create secret generic k6-script \
 
 3. Probes are now required in litmus chaos, for simplicity we gonna use an up probe to test if our service is up before load testing it.
 
-[chaos-probe.webm](https://github.com/user-attachments/assets/2de2a5cc-c6fc-42a9-a17b-73b6cc90dc1c)
+[chaos-probe.mp4](https://github.com/user-attachments/assets/7666f932-41e9-4b2f-a650-6db44e0642d5)
 
 
 4. Create `k6` experiment
 
-[k6-exp.webm](https://github.com/user-attachments/assets/a2184f66-110d-4397-94ca-42b0cb5aadbe)
+[k6-exp.mp4](https://github.com/user-attachments/assets/a2184f66-110d-4397-94ca-42b0cb5aadbe)
 
 5. Run the load test
 
-[k6-exp.webm](https://github.com/user-attachments/assets/a79d25a1-c500-49ad-a949-231320fb566b)
+[k6-exp.mp4](https://github.com/user-attachments/assets/a79d25a1-c500-49ad-a949-231320fb566b)
