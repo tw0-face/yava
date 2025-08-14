@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: redis
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - list:
+      elements:
+      - cluster: staging
+        url: https://kubernetes.default.svc
+      - cluster: prod
+        url: https://kubernetes.default.svc
+  template:
+    metadata:
+      name: 'redis-{{.cluster}}'
+      namespace: argocd
+    spec:
+      project: voting-app
+      source:
+        repoURL: https://github.com/tw0-face/yava.git
+        targetRevision: main
+        path: manifests/app/redis/{{.cluster}}
+      destination:
+        server: '{{.url}}'
+        namespace: voting-app
+      syncPolicy:
+        syncOptions:
+        - CreateNamespace=true
+        managedNamespaceMetadata:
+          labels:
+            elbv2.k8s.aws/pod-readiness-gate-inject: enabled

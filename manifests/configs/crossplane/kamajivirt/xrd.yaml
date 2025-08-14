@@ -1,0 +1,115 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: kamajivirts.yava.com
+spec:
+  defaultCompositionRef:
+    name: kamajivirt
+  group: yava.com
+  names:
+    kind: KamajiVirt
+    plural: kamajivirts
+  claimNames:
+    kind: KamajiVirtClaim
+    plural: kamajivirtclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: ID of the Cluster that other objects will use to refer to it.
+                parameters:
+                  type: object
+                  properties:
+                    namespace:
+                      description: The Cluster namespace to deploy the cluster to
+                      type: string
+                      default: default
+                    cidrBlocks:
+                      type: object
+                      properties:
+                        pods:
+                          description: The Cluster pods CIDR range
+                          type: string
+                          default: 10.243.0.0/16
+                        services:
+                          description: The Cluster services CIDR range
+                          type: string
+                          default: 10.95.0.0/16
+                      required:
+                        - pods
+                        - services
+                    controlPlane:
+                      type: object
+                      properties:
+                        serviceType:
+                          description: The Service Type to expose the cluster
+                          type: string
+                          default: ClusterIP
+                        serviceAddress:
+                          description: The Service address used in case of pre-assigned address
+                          type: string
+                        replicas:
+                          description: Number of Controlplane replicas for HA
+                          type: integer
+                          default: 1
+                        version:
+                          description: Kubernetes Version
+                          type: string
+                          default: 1.32.1
+                      required:
+                        - serviceType
+                        - replicas
+                        - version
+                    worker:
+                      type: object
+                      properties:
+                        memory:
+                          description: The Amount of Memory To Give To Worker Nodes
+                          type: string
+                          default: 2Gi
+                        replicas:
+                          description: Number of Worker Nodes
+                          type: integer
+                          default: 1
+                        cpu:
+                          description: The Amount of CPU Cores To Give To Worker Nodes
+                          type: integer
+                          default: 2
+                      required:
+                        - memory
+                        - replicas
+                        - cpu
+                  required:
+                    - namespace
+                    - cidrBlocks
+                    - controlPlane
+                    - worker
+              required:
+                - id
+                - parameters
+      #       status:
+      #         type: object
+      #         properties:
+      #           controlPlane:
+      #             description: The State of Conrol Plane
+      #             type: string
+      #           worker:
+      #             description: The State of Worker Nodes
+      #             type: string
+      # additionalPrinterColumns:
+      #   - name: CP
+      #     type: string
+      #     jsonPath: ".status.controlPlane"
+      #   - name: WORKER
+      #     type: string
+      #     jsonPath: ".status.worker"

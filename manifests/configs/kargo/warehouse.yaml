@@ -1,0 +1,35 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: vote
+  namespace: voting-app
+spec:
+  subscriptions:
+  - image:
+      repoURL: annamartin123/vote
+      imageSelectionStrategy: Lexical
+      discoveryLimit: 5
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: worker
+  namespace: voting-app
+spec:
+  subscriptions:
+  - image:
+      repoURL: annamartin123/worker
+      imageSelectionStrategy: Lexical
+      discoveryLimit: 5
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: result
+  namespace: voting-app
+spec:
+  subscriptions:
+  - image:
+      repoURL: annamartin123/result
+      imageSelectionStrategy: Lexical
+      discoveryLimit: 5

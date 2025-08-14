@@ -1,0 +1,40 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: img-update
+  namespace: voting-app
+spec:
+  vars:
+  - name: gitopsRepo
+    value: https://github.com/tw0-face/yava.git
+  - name: imageRepo
+  - name: service
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: ${{ vars.gitopsRepo }}
+      checkout:
+      - branch: main
+        path: ./ws
+  - uses: kustomize-set-image
+    as: update
+    config:
+      path: ./ws/manifests/app/${{ vars.service }}/overlays/${{ split(ctx.stage, "-")[1] }}
+      images:
+      - image: ${{ vars.imageRepo }}
+        tag: ${{ imageFrom(vars.imageRepo).Tag }}
+  - uses: git-commit
+    as: commit
+    config:
+      path: ./ws
+      message: ${{ task.outputs.update.commitMessage }}
+  - uses: git-push
+    config:
+      path: ./ws
+  - uses: argocd-update
+    config:
+      apps:
+      - name: ${{ ctx.stage }}
+        sources:
+        - repoURL: ${{ vars.gitopsRepo }}
+          desiredRevision: ${{ task.outputs.commit.commit }}

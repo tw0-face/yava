@@ -1,0 +1,114 @@
+apiVersion: v1
+data: {}
+kind: ConfigMap
+metadata:
+  name: voting-app-db-conn-cm
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: voting-app-db-password
+stringData:
+  password: postgres
+  # password: test
+---
+apiVersion: ec2.services.k8s.aws/v1alpha1
+kind: SecurityGroup
+metadata:
+  name: voting-app-db-sg
+spec:
+  description: allow access to postgresql
+  ingressRules:
+  - fromPort: 5432
+    ipProtocol: tcp
+    # in prod it's better to specify the eks security groups
+    ipRanges:
+    - cidrIP: 0.0.0.0/0
+      description: allow access from everywhere
+    toPort: 5432
+  name: voting-app-db-sg
+  vpcID: vpc-09c007591e391744d
+---
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBSubnetGroup
+metadata:
+  name: voting-app-db-subnetgroup
+spec:
+  description: private subnets for voting app db
+  name: voting-app-db-subnetgroup
+  subnetIDs:
+  - subnet-04d772941babedaf2
+  - subnet-0768e5d63e7231c5c
+---
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBParameterGroup
+metadata:
+  name: voting-app-db-pg
+spec:
+  name: voting-app-db-pg
+  description: "disable forced ssl"
+  family: postgres17
+  parameterOverrides:
+    rds.force_ssl: "0"
+---
+apiVersion: rds.services.k8s.aws/v1alpha1
+kind: DBInstance
+metadata:
+  name: voting-app-db
+spec:
+  allocatedStorage: 20
+  availabilityZone: us-east-1a
+  dbInstanceClass: db.t4g.micro
+  dbInstanceIdentifier: voting-app-db
+  dbSubnetGroupRef:
+    from:
+      name: voting-app-db-subnetgroup
+  dbParameterGroupRef: 
+    from: 
+      name: voting-app-db-pg
+      namespace: voting-app
+  engine: postgres
+  engineVersion: "17.4"
+  # engineVersion: "15"
+  masterUserPassword:
+    key: password
+    name: voting-app-db-password
+    namespace: voting-app
+  masterUsername: postgres
+  # masterUsername: "test"
+  multiAZ: false
+  vpcSecurityGroupRefs:
+  - from:
+      name: voting-app-db-sg
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: voting-app-db-host
+spec:
+  from:
+    path: .status.endpoint.address
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: voting-app-db
+  to:
+    kind: configmap
+    name: voting-app-db-conn-cm
+    namespace: voting-app
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: voting-app-db-port
+spec:
+  from:
+    path: .status.endpoint.port
+    resource:
+      group: rds.services.k8s.aws
+      kind: DBInstance
+      name: voting-app-db
+  to:
+    kind: configmap
+    name: voting-app-db-conn-cm
+    namespace: voting-app

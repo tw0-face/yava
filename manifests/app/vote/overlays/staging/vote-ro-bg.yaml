@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: vote
+spec:
+  strategy:
+    blueGreen: 
+      activeMetadata:
+        labels:
+          role: active
+      previewMetadata:
+        labels:
+          role: preview
+      activeService: vote
+      previewService: vote-preview
+      # autoPromotionEnabled: true
+      # autoPromotionSeconds: 180
+      previewReplicaCount: 1
+      scaleDownDelaySeconds: 180
+      scaleDownDelayRevisionLimit: 2

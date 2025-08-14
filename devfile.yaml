@@ -1,0 +1,160 @@
+schemaVersion: 2.2.0
+metadata:
+  name: voting-app
+  description: Docker Voting App
+  tags:
+    - Node.js
+    - Postgres
+    - Redis
+    - .NET
+    - Python
+    - flask
+  projectType: universal
+  language: Polyglot
+  version: 1.0.0
+components:
+
+  - name: tools
+    container:
+      image: quay.io/devfile/universal-developer-image:ubi9-latest
+      mountSources: true
+
+  - name: vote
+    container:
+      image: registry.access.redhat.com/ubi9/python-311:1-1747333117
+      mountSources: true
+      args: ['tail', '-f', '/dev/null']
+      endpoints:
+        - name: http-python
+          targetPort: 80
+          protocol: http
+          exposure: public
+      env:
+        - name: REDIS_HOST
+          value: 127.0.0.1
+
+
+  - name: redis
+    container:
+      image: redis:alpine
+      endpoints:
+        - name: redis
+          targetPort: 6379
+          exposure: internal
+
+  - name: db
+    container:
+      image: quay.io/sclorg/postgresql-15-c9s:c9s
+      volumeMounts:
+        - name: db-data
+          path: /var/lib/pgsql/data
+      endpoints:
+        - name: db
+          targetPort: 5432
+          exposure: internal
+      env:
+        - name: POSTGRESQL_USER
+          value: postgres
+        - name: POSTGRESQL_PASSWORD
+          value: postgres
+        - name: POSTGRESQL_DATABASE
+          value: postgres
+
+  - name: db-data
+    volume:
+      size: 1Gi
+
+
+  - name: result
+    container:
+      image: registry.access.redhat.com/ubi8/nodejs-18:1-32
+      mountSources: true
+      args: ['tail', '-f', '/dev/null']
+      env:
+        - name: DB_HOST
+          value: 127.0.0.1
+      endpoints:
+        - name: http-node
+          targetPort: 4000
+          protocol: http
+          exposure: public
+
+
+  - name: worker
+    container:
+      image: registry.access.redhat.com/ubi8/dotnet-70:7.0-32
+      mountSources: true
+      args: ["tail", "-f", "/dev/null"]
+      env:
+        - name: REDIS_HOST
+          value: 127.0.0.1
+        - name: DB_HOST
+          value: 127.0.0.1
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Development
+        - name: CONFIGURATION
+          value: Debug
+
+commands:
+  - id: install-vote-req
+    exec:
+      commandLine: pip install -r requirements.txt
+      workingDir: ${PROJECT_SOURCE}/vote
+      group:
+        kind: build
+      component: vote
+
+  - id: run-vote
+    exec:
+      commandLine: 'python app.py'
+      workingDir: ${PROJECT_SOURCE}/vote
+      component: vote
+      group:
+        kind: run
+  - id: dev-vote
+    exec:
+      commandLine: 'gunicorn app:app -b 0.0.0.0:80 --log-file - --access-logfile - --workers 4 --keep-alive 0  --reload'
+      workingDir: ${PROJECT_SOURCE}/vote
+      component: vote
+      group:
+        kind: run
+
+  - id: install-result-req
+    exec:
+      component: result
+      commandLine: npm install
+      workingDir: ${PROJECT_SOURCE}/result
+      group:
+        kind: build
+        
+  - id: run-result
+    exec:
+      component: result
+      commandLine: node server.js
+      workingDir: ${PROJECT_SOURCE}/result
+      group:
+        kind: run
+
+  - id: install-worker-req
+    exec:
+      component: worker
+      commandLine: dotnet restore
+      workingDir: ${PROJECT_SOURCE}/result
+      group:
+        kind: build
+
+  - id: build-worker
+    exec:
+      workingDir: ${PROJECT_SOURCE}/worker
+      commandLine: dotnet publish -c $CONFIGURATION -o ./app --self-contained false --no-restore
+      component: worker
+      group:
+        kind: build
+
+  - id: run-worker
+    exec:
+      workingDir: ${PROJECT_SOURCE}/worker/app
+      commandLine: dotnet Worker.dll
+      component: worker
+      group:
+        kind: run

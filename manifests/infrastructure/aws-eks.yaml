@@ -1,0 +1,22 @@
+apiVersion: yava.com/v1alpha1
+kind: EKS
+metadata:
+  name: voting-app
+spec:
+  parameters:
+    id: voting-app
+    version: "1.32"
+    region: us-east-1
+    # iam:
+      # principalArn: arn:aws:iam::000000000000:root
+    nodes:
+      count: 1
+      instanceType: t3.small
+      access: private
+    ack:
+    - EC2
+    - RDS
+    - ElastiCache
+  writeConnectionSecretToRef:
+    name: voting-app-kubeconfig
+    namespace: crossplane-system

@@ -1,0 +1,99 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: voting-sensor
+  namespace: argo-events
+spec:
+  eventBusName: voting-bus
+  template:
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    - name: vote
+      eventSourceName: voting-webhook
+      eventName: vote
+    - name: worker
+      eventSourceName: voting-webhook
+      eventName: worker
+    - name: result
+      eventSourceName: voting-webhook
+      eventName: result
+  triggers:
+    - template:
+        conditions: "vote"
+        name: vote-ci
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: vote-ci-
+                namespace: argo
+              spec:
+                serviceAccountName: argo-workflow
+                arguments:
+                  parameters:
+                    - name: repo-url
+                      value: "github.com/tw0-face/yava.git"
+                    - name: branch
+                      value: "main"
+                    - name: image
+                      value: "annamartin123/vote"
+                    - name: dockerfile
+                      value: "vote"
+                workflowTemplateRef:
+                  name: voting-app-ci-tmpl
+    - template:
+        conditions: "worker"
+        name: worker-ci
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: worker-ci-
+                namespace: argo
+              spec:
+                serviceAccountName: argo-workflow
+                arguments:
+                  parameters:
+                    - name: repo-url
+                      value: "github.com/tw0-face/yava.git"
+                    - name: branch
+                      value: "main"
+                    - name: image
+                      value: "annamartin123/worker"
+                    - name: dockerfile
+                      value: "worker"
+                workflowTemplateRef:
+                  name: voting-app-ci-tmpl
+    - template:
+        conditions: "result"
+        name: result-ci
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: result-ci-
+                namespace: argo
+              spec:
+                arguments:
+                  serviceAccountName: argo-workflow
+                  parameters:
+                    - name: repo-url
+                      value: "github.com/tw0-face/yava.git"
+                    - name: branch
+                      value: "main"
+                    - name: image
+                      value: "annamartin123/result"
+                    - name: dockerfile
+                      value: "result"
+                workflowTemplateRef:
+                  name: voting-app-ci-tmpl

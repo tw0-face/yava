@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: result
+  name: result
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: result
+  template:
+    metadata:
+      labels:
+        app: result
+    spec:
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          POSTGRES_HOST="${DB_HOST:-db}"
+          export PGPASSWORD="postgres"
+          echo "Waiting for PostgreSQL at $POSTGRES_HOST..."
+          until echo 'SELECT 1' | psql -h "$POSTGRES_HOST" -U postgres -d postgres -tA | grep -q 1; do
+            echo "PostgreSQL not ready, retrying..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready."
+      containers:
+      - image: annamartin123/result:c57c36c
+        name: result
+        ports:
+        - containerPort: 80
+          name: result

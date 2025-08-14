@@ -1,0 +1,14 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: redis-scaledobject
+spec:
+  scaleTargetRef:
+    name: worker
+  triggers:
+  - type: redis
+    metadata:
+      listName: votes
+      listLength: "5"
+      hostFromEnv: REDIS_HOST
+      port: "6379"

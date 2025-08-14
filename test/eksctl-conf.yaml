@@ -1,0 +1,41 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+availabilityZones:
+- us-east-1a
+- us-east-1b
+
+metadata:
+  name: yava
+  region: us-east-1
+  version: '1.32'
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+  - metadata:
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    wellKnownPolicies:
+      awsLoadBalancerController: true
+
+
+nodeGroups:
+  - name: ng-private-workers
+    instanceType: t3.small
+    desiredCapacity: 3
+#     iam:
+#       withAddonPolicies:
+#         awsLoadBalancerController: true
+
+
+# addons:
+# - name: vpc-cni
+#   attachPolicyARNs:
+#     - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+# - name: coredns
+#   version: latest
+#   configurationValues: |-
+#     replicaCount: 2
+# - name: kube-proxy
+#   version: latest

@@ -1,0 +1,149 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: voting-app-ci-tmpl
+  namespace: argo
+spec:
+  entrypoint: ci
+  volumeClaimTemplates:
+  - metadata:
+      name: workspace
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi 
+  volumes:
+    - name: docker-config
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+  templates:
+    - name: ci
+      inputs:
+        parameters:
+        - name: repo-url
+        - name: branch
+        - name: image
+        - name: dockerfile
+      steps:
+        - - name: checkout
+            template: checkout
+            arguments:
+              parameters:
+                - name: repo-url
+                  value: "{{inputs.parameters.repo-url}}"
+                - name: branch
+                  value: "{{inputs.parameters.branch}}"
+        - - name: kaniko-build
+            template: kaniko-build
+            arguments:
+              parameters:
+                - name: commit-sha
+                  value: "{{steps.checkout.outputs.parameters.commit-sha}}"
+                - name: image
+                  value: "{{inputs.parameters.image}}"
+                - name: dockerfile
+                  value: "{{inputs.parameters.dockerfile}}"
+        - - name: trivy-scan
+            template: trivy-scan
+            arguments:
+              parameters:
+                - name: dockerfile
+                  value: "{{inputs.parameters.dockerfile}}"
+        - - name: skopeo-push
+            template: skopeo-push
+            arguments:
+              parameters:
+                - name: commit-sha
+                  value: "{{steps.checkout.outputs.parameters.commit-sha}}"
+                - name: image
+                  value: "{{inputs.parameters.image}}"
+                - name: dockerfile
+                  value: "{{inputs.parameters.dockerfile}}"
+
+    - name: checkout
+      inputs:
+        parameters:
+        - name: repo-url
+        - name: branch
+          default: "main"
+      container:
+        image: bitnami/git 
+        env:
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: voting-app-repo-cred
+              key: password 
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - >-
+              git clone --branch {{inputs.parameters.branch}} https://oauth2:$GIT_TOKEN@{{inputs.parameters.repo-url}} /workspace &&
+              cd workspace &&
+              echo -n $(git rev-parse --short HEAD) > /workspace/commit-sha
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+      outputs:
+        parameters:
+          - name: commit-sha
+            valueFrom:
+              path: /workspace/commit-sha
+    - name: kaniko-build
+      inputs:
+        parameters:
+        - name: commit-sha
+        - name: image
+        - name: dockerfile
+          description: "Path to the dockerfile to build"
+      container:
+        image: gcr.io/kaniko-project/executor:latest
+        command:
+        - /kaniko/executor
+        args:
+        - --context=dir:///workspace/{{inputs.parameters.dockerfile}}
+        - --no-push
+        - --tar-path=/workspace/{{inputs.parameters.dockerfile}}.tar
+        - --destination={{inputs.parameters.image}}:{{inputs.parameters.commit-sha}}
+        - --dockerfile=Dockerfile
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+    - name: trivy-scan
+      inputs:
+        parameters:
+        - name: dockerfile
+      container:
+        image: aquasec/trivy:latest
+        command:
+        - trivy
+        args:
+        - image
+        - --input=/workspace/{{inputs.parameters.dockerfile}}.tar
+        - --format=table
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+    - name: skopeo-push
+      inputs:
+        parameters:
+        - name: commit-sha
+        - name: image
+        - name: dockerfile
+      container:
+        image: quay.io/skopeo/stable:latest
+        command:
+        - sh
+        - -c
+        - |
+          skopeo copy docker-archive:/workspace/{{inputs.parameters.dockerfile}}.tar docker://{{inputs.parameters.image}}:{{inputs.parameters.commit-sha}} \
+            --authfile /dockerconfig/config.json
+        volumeMounts:
+          - name: workspace
+            mountPath: /workspace
+          - name: docker-config
+            mountPath: /dockerconfig

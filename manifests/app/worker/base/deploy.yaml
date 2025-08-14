@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: worker
+  name: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      initContainers:
+      - name: wait-for-redis
+        image: redis
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          HOST="${REDIS_HOST:-redis}"
+          echo "Waiting for Redis at $HOST..."
+          until redis-cli -h "$HOST" ping | grep -q PONG; do
+            echo "Redis not ready, retrying..."
+            sleep 2
+          done
+          echo "Redis is ready."
+      - name: wait-for-postgres
+        image: postgres
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          POSTGRES_HOST="${DB_HOST:-db}"
+          export PGPASSWORD="postgres"
+          echo "Waiting for PostgreSQL at $POSTGRES_HOST..."
+          until echo 'SELECT 1' | psql -h "$POSTGRES_HOST" -U postgres -d postgres -tA | grep -q 1; do
+            echo "PostgreSQL not ready, retrying..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready."
+
+      containers:
+      - image: annamartin123/worker:f969d59
+        name: worker

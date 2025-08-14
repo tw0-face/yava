@@ -1,0 +1,153 @@
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: vote-staging
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: violet
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: vote
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/vote"
+        - name: service
+          value: "vote"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: vote-prod
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: red
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: vote
+    sources:
+      stages:
+      - vote-staging
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/vote"
+        - name: service
+          value: "vote"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: worker-staging
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: violet
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: worker
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/worker"
+        - name: service
+          value: "worker"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: worker-prod
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: red
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: worker
+    sources:
+      stages:
+      - worker-staging
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/worker"
+        - name: service
+          value: "worker"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: result-staging
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: violet
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: result
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/result"
+        - name: service
+          value: "result"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: result-prod
+  namespace: voting-app
+  annotations:
+    kargo.akuity.io/color: red
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: result
+    sources:
+      stages:
+      - result-staging
+  promotionTemplate:
+    spec:
+      steps:
+      - task:
+          name: img-update
+        vars:
+        - name: imageRepo
+          value: "annamartin123/result"
+        - name: service
+          value: "result"

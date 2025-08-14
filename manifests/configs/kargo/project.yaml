@@ -1,0 +1,16 @@
+# adopt the pre existing namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: voting-app
+  labels:
+    kargo.akuity.io/project: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: voting-app
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

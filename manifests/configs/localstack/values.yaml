@@ -1,0 +1,46 @@
+# use pro image
+image:
+  repository: localstack/localstack-pro
+
+# debug: true
+
+# enable docker in docker (required for some services that spins up docker conatiner like eks k3d and redis container if enabled)
+# mountDind:
+#   enabled: true
+
+extraEnvVars:
+  - name: DEFAULT_REGION
+    value: "us-east-1"
+  - name: LOCALSTACK_AUTH_TOKEN # change with your auth token
+    value: ""
+  - name: EKS_K8S_PROVIDER
+    value: "local" # use local kubernets instead of k3d
+  - name: DNS_RESOLVE_IP # change with your management minikube ip
+    value: "192.168.39.31" # return node ip instead of localhost when asked to resolve localhost.localstack.cloud
+  - name: LOCALSTACK_HOST # change with your management minikube ip
+    value: "192.168.39.31:31566" # use this ip when crafting services urls
+
+service:
+  type: NodePort
+  edgeService:
+    name: edge
+    targetPort: 4566
+    nodePort: 31566
+  externalServicePorts:
+    start: 31510 # make the internal port matches the nodeport, useful as it's reflected in services urls
+    end: 31560
+    nodePortStart: 31510
+  dnsService: true # enable localstack dns
+  
+volumes: 
+  - hostPath:
+      path: "/home/docker/kubeconfig" # mount the prod cluster configmap
+    name: kubeconfig
+
+volumeMounts:
+  - name: kubeconfig
+    mountPath: "/root/.kube/config"
+    readOnly: true
+
+# persistence:
+#   enabled: true

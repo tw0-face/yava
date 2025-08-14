@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+  - list:
+      elements:
+      - target: app
+      - target: configs
+      - target: secrets
+  template:
+    metadata:
+      name: 'argocd-{{.target}}'
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/tw0-face/yava.git
+        targetRevision: main
+        path: manifests/infrastructure/argocd/{{.target}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

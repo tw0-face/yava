@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: voting-webhook
+  namespace: argo-events
+spec:
+  eventBusName: voting-bus
+  service:
+    ports:
+      - port: 80
+        targetPort: 80
+  webhook:
+    vote:
+      port: "80"
+      endpoint: /vote
+      method: GET
+    worker:
+      port: "80"
+      endpoint: /worker
+      method: GET
+    result:
+      port: "80"
+      endpoint: /result
+      method: GET

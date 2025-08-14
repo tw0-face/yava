@@ -1,0 +1,354 @@
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: kamajivirt
+  labels:
+    controlPlane: kamaji
+    Worker: kubevirt
+spec:
+  compositeTypeRef:
+    apiVersion: yava.com/v1alpha1
+    kind: KamajiVirt
+  mode: Resources
+  resources:
+    # --- 1. CAPI Cluster
+    - name: capi-cluster
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: cluster.x-k8s.io/v1beta1
+              kind: Cluster
+              spec:
+                clusterNetwork:
+                  pods:
+                    cidrBlocks: []
+                  services:
+                    cidrBlocks: []
+                controlPlaneRef:
+                  apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+                  kind: KamajiControlPlane
+                  name: ""
+                  namespace: ""
+                infrastructureRef:
+                  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+                  kind: KubevirtCluster
+                  name: ""
+                  namespace: ""
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.parameters.cidrBlocks.pods
+          toFieldPath: spec.forProvider.manifest.spec.clusterNetwork.pods.cidrBlocks[0]
+        - fromFieldPath: spec.parameters.cidrBlocks.services
+          toFieldPath: spec.forProvider.manifest.spec.clusterNetwork.services.cidrBlocks[0]
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.controlPlaneRef.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.spec.controlPlaneRef.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.infrastructureRef.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.spec.infrastructureRef.namespace
+
+
+    # --- 2. KubeVirt Cluster
+    - name: kubevirt-cluster
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+              kind: KubevirtCluster
+              metadata:
+                annotations:
+                  cluster.x-k8s.io/managed-by: kamaji
+              spec: {}
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+
+
+    # --- 3. Kamaji Control Plane
+    - name: kamaji-controlplane
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+              kind: KamajiControlPlane
+              spec:
+                dataStoreName: default
+                addons:
+                  coreDNS: {}
+                  kubeProxy: {}
+                kubelet:
+                  cgroupfs: systemd
+                  preferredAddressTypes:
+                    - InternalIP
+                    - ExternalIP
+                network:
+                  serviceType: ClusterIP
+                  serviceAnnotations: {}
+                replicas: 1
+                version: "1.32.1"
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.parameters.controlPlane.serviceType
+          toFieldPath: spec.forProvider.manifest.spec.network.serviceType
+        - fromFieldPath: spec.parameters.controlPlane.replicas
+          toFieldPath: spec.forProvider.manifest.spec.replicas
+        - fromFieldPath: spec.parameters.controlPlane.version
+          toFieldPath: spec.forProvider.manifest.spec.version
+        - fromFieldPath: spec.parameters.controlPlane.serviceAddress
+          policy:
+            fromFieldPath: Optional
+          toFieldPath: spec.forProvider.manifest.spec.network.serviceAddress
+        - fromFieldPath: spec.parameters.controlPlane.serviceAddress
+          policy:
+            fromFieldPath: Optional
+          toFieldPath: spec.forProvider.manifest.spec.network.serviceAnnotations[metallb.io/loadBalancerIPs]
+
+
+    # --- 4. Worker Template
+    - name: worker-template
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+              kind: KubevirtMachineTemplate
+              spec:
+                template:
+                  spec:
+                    virtualMachineBootstrapCheck:
+                      checkStrategy: ssh
+                    virtualMachineTemplate:
+                      metadata:
+                        namespace: ""
+                      spec:
+                        runStrategy: Always
+                        template:
+                          spec:
+                            domain:
+                              cpu:
+                                cores: 1
+                              memory:
+                                guest: 1Gi
+                              devices:
+                                disks:
+                                  - name: containervolume
+                                    disk:
+                                      bus: virtio
+                                networkInterfaceMultiqueue: true
+                            evictionStrategy: External
+                            volumes:
+                              - name: containervolume
+                                containerDisk:
+                                  image: quay.io/capk/ubuntu-2404-container-disk:v1.32.1
+      patches:
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.virtualMachineTemplate.metadata.namespace
+        - fromFieldPath: spec.parameters.worker.cpu
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.virtualMachineTemplate.spec.template.spec.domain.cpu.cores
+        - fromFieldPath: spec.parameters.worker.memory
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.virtualMachineTemplate.spec.template.spec.domain.memory.guest
+        - fromFieldPath: spec.parameters.controlPlane.version
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.virtualMachineTemplate.spec.template.spec.volumes[0].containerDisk.image
+          transforms:
+            - type: string
+              string:
+                fmt: "quay.io/capk/ubuntu-2404-container-disk:v%s"
+
+
+    # --- 5. Kubeadm Config Template
+    - name: kubeadm-config
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              spec:
+                template:
+                  spec:
+                    joinConfiguration:
+                      nodeRegistration:
+                        kubeletExtraArgs: {}
+      patches:
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+
+
+    # --- 6. MachineDeployment
+    - name: worker-machines
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+
+          forProvider:
+            manifest:
+              apiVersion: cluster.x-k8s.io/v1beta1
+              kind: MachineDeployment
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels: null
+                template:
+                  spec:
+                    clusterName: ""
+                    version: "v1.32.1"
+                    bootstrap:
+                      configRef:
+                        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+                        kind: KubeadmConfigTemplate
+                        name: ""
+                    infrastructureRef:
+                      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+                      kind: KubevirtMachineTemplate
+                      name: ""
+      patches:
+        - fromFieldPath: spec.parameters.worker.replicas
+          toFieldPath: spec.forProvider.manifest.spec.replicas
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.forProvider.manifest.metadata.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.clusterName
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.clusterName
+        - fromFieldPath: spec.parameters.controlPlane.version
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.version
+          transforms:
+            - type: string
+              string:
+                fmt: "v%s"
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.infrastructureRef.name
+        - fromFieldPath: spec.id
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.bootstrap.configRef.name
+
+
+    # --- 7. Helm ProviderConfig using the extracted kubeconfig
+    - name: helm
+      base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            secretRef:
+              key: admin.conf
+              name: cluster-config
+              namespace: crossplane-system
+            source: Secret
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.credentials.secretRef.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.credentials.secretRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-admin-kubeconfig"
+      readinessChecks:
+        - type: None
+  
+
+    # --- 8. Kubernetes ProviderConfig using the extracted kubeconfig
+    - name: kubernetes
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: ProviderConfig
+        spec:
+          credentials:
+            secretRef:
+              key: admin.conf
+              name: cluster-config
+              namespace: crossplane-system
+            source: Secret
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.name
+        - fromFieldPath: spec.parameters.namespace
+          toFieldPath: spec.credentials.secretRef.namespace
+        - fromFieldPath: spec.id
+          toFieldPath: spec.credentials.secretRef.name
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-admin-kubeconfig"
+      readinessChecks:
+        - type: None
+
+    # --- 9. Namespace for Flannel
+    - name: flannel-namespace
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha2
+        kind: Object
+        spec:
+          providerConfigRef:
+            name: ""
+          forProvider:
+            manifest:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: kube-flannel
+                labels:
+                  pod-security.kubernetes.io/enforce: privileged
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+
+    # --- 10. Flannel HelmRelease
+    - name: flannel-release
+      base:
+        apiVersion: helm.crossplane.io/v1beta1
+        kind: Release
+        spec:
+          forProvider:
+            namespace: kube-flannel
+            chart:
+              name: flannel
+              repository: https://flannel-io.github.io/flannel/
+            set:
+              - name: podCidr
+                value: ""
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: spec.providerConfigRef.name
+        - fromFieldPath: spec.parameters.cidrBlocks.pods
+          toFieldPath: spec.forProvider.set[0].value

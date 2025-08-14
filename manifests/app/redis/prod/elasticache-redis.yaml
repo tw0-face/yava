@@ -1,0 +1,87 @@
+apiVersion: v1
+data: {}
+kind: ConfigMap
+metadata:
+  name: voting-app-redis-conn-cm
+---
+apiVersion: ec2.services.k8s.aws/v1alpha1
+kind: SecurityGroup
+metadata:
+  name: voting-app-redis-sg
+spec:
+  description: allow access to redis
+  ingressRules:
+  - fromPort: 6379
+    ipProtocol: tcp
+    ipRanges:
+    # in prod it's better to specify the eks security groups
+    - cidrIP: 0.0.0.0/0
+      description: allow access from everywhere
+    toPort: 6379
+  name: voting-app-redis-sg
+  vpcID: vpc-09c007591e391744d
+---
+apiVersion: elasticache.services.k8s.aws/v1alpha1
+kind: CacheSubnetGroup
+metadata:
+  name: voting-app-redis-subnetgroup
+spec:
+  cacheSubnetGroupDescription: private subnets for voting app redis
+  cacheSubnetGroupName: voting-app-redis-subnetgroup
+  subnetIDs:
+  - subnet-04d772941babedaf2
+  - subnet-0768e5d63e7231c5c
+---
+apiVersion: elasticache.services.k8s.aws/v1alpha1
+kind: ReplicationGroup
+metadata:
+  name: voting-app-redis-rg
+spec:
+  cacheNodeType: cache.t4g.micro
+  cacheSubnetGroupRef:
+    from:
+      name: voting-app-redis-subnetgroup
+      namespace: voting-app
+  description: "Voting app Redis cluster"
+  engine: redis
+  engineVersion: "7.1"
+  multiAZEnabled: false
+  numNodeGroups: 1
+  replicasPerNodeGroup: 1
+  replicationGroupID: voting-app-redis-rg
+  securityGroupRefs:
+  - from:
+      name: voting-app-redis-sg
+      namespace: voting-app
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: voting-app-redis-host
+spec:
+  from:
+    path: .status.nodeGroups[0].primaryEndpoint.address
+    resource:
+      group: elasticache.services.k8s.aws
+      kind: ReplicationGroup
+      name: voting-app-redis-rg
+  to:
+    kind: configmap
+    name: voting-app-redis-conn-cm
+    namespace: voting-app
+---
+apiVersion: services.k8s.aws/v1alpha1
+kind: FieldExport
+metadata:
+  name: voting-app-redis-port
+spec:
+  from:
+    path: .status.nodeGroups[0].primaryEndpoint.port
+    resource:
+      group: elasticache.services.k8s.aws
+      kind: ReplicationGroup
+      name: voting-app-redis-rg
+  to:
+    kind: configmap
+    name: voting-app-redis-conn-cm
+    namespace: voting-app

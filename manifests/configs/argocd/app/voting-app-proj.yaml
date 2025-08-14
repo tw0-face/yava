@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: voting-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: "Docker Voting APP"
+  sourceRepos:
+    - https://github.com/tw0-face/yava.git
+  destinations:
+    - namespace: voting-app
+      server: https://kubernetes.default.svc
+    - namespace: voting-app
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

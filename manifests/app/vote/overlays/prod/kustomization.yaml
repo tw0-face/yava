@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+- ing.yaml
+- vote-svc.yaml
+- vote-ping-svc.yaml
+- vote-pong-svc.yaml
+namespace: voting-app
+patches:
+- path: vote-ro-canary.yaml
+- patch: |-
+    - op: add
+      path: "/spec/template/spec/containers/0/env"
+      value:
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: voting-app-redis-conn-cm
+              key: "voting-app.voting-app-redis-host"
+    - op: add
+      path: "/spec/template/spec/initContainers/0/env"
+      value:
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: voting-app-redis-conn-cm
+              key: "voting-app.voting-app-redis-host"
+  target:
+    kind: Rollout

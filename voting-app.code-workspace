@@ -1,0 +1,21 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {},
+    "extensions": {
+        "recommendations": [
+            "esbenp.prettier-vscode",
+            "redhat.vscode-yaml",
+            "redhat.vscode-openshift-connector",
+			"johnpapa.winteriscoming",
+			"cnshenj.vscode-task-manager",
+			"ms-python.python",
+			"vscode.javascript",
+			"ms-dotnettools.vscode-dotnet-runtime",
+			"Redis.redis-for-vscode"
+    ]
+    }
+}

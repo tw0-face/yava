@@ -1,0 +1,24 @@
+apiVersion: yava.com/v1alpha1
+kind: Network
+metadata:
+  name: voting-app
+spec:
+  parameters:
+    id: voting-app
+    region: us-east-1
+    vpcCidrBlock: 10.0.0.0/16
+    subnets:
+      - availabilityZone: us-east-1a
+        type: public
+        cidrBlock: 10.0.0.0/19
+        nat: true
+      - availabilityZone: us-east-1b
+        type: public
+        cidrBlock: 10.0.32.0/19
+        nat: true
+      - availabilityZone: us-east-1a
+        type: private
+        cidrBlock: 10.0.64.0/19
+      - availabilityZone: us-east-1b
+        type: private
+        cidrBlock: 10.0.96.0/19
