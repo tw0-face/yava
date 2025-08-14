@@ -27,15 +27,15 @@ troubleshooting: `inspektor gadget`
 
 Infrastructure:
 
-    control plane as a service: `kamaji` + `capi` 
+- control plane as a service: `kamaji` + `capi` 
 
-    virtualization: `kubevirt`
+- virtualization: `kubevirt`
 
-    IaC: `crossplane` + `ack`
+- IaC: `crossplane` + `ack`
 
-    cloud provider: `aws`
+- cloud provider: `aws`
 
-    local testing: `localstack`
+- local testing: `localstack`
 
 development: `eclipse che (openshift devspace)`
 
