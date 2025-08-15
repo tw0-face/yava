@@ -524,7 +524,7 @@ kubectl gadget run ghcr.io/inspektor-gadget/gadget/trace_exec:latest -n localsta
 kubectl gadget run snapshot_process:latest -n localstack -c localstack  --fields=k8s.containerName,comm
 ```
 
-[inspektor-gadget-2.mp4](https://github.com/user-attachments/assets/a68d9b30-d942-4ae0-a405-e8de7af25986
+[inspektor-gadget-2.mp4](https://github.com/user-attachments/assets/a68d9b30-d942-4ae0-a405-e8de7af25986)
 
 #### Cleanup
 
